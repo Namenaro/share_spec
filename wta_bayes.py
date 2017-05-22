@@ -11,7 +11,16 @@ import pylab
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os
+import matplotlib as mpl
+import os
+import glob
+
+files = glob.glob('/results/*')
+for f in files:
+    os.remove(f)
 os.chdir('results')
+
+cmap = mpl.cm.autumn
 
 def show_sample(rv, name_str):
     samples = rv.random(size=8000)
@@ -37,23 +46,31 @@ def show_posterior(v_params, data, some_str):
     pylab.savefig('mu_'+some_str + '.png')
    # plt.show()
 
+def show_only_posterior(v_params, some_str, my_color):
+    x = np.linspace(-10, 10, 100)
+    y = stats.norm(v_params.means['mu'], v_params.stds['mu']).pdf(x)
+    plt.plot(x, y, color=cmap(my_color))
+    plt.title('mu')
+    plt.legend(loc=0)
+    plt.axvline(x=2.0)
+    pylab.savefig('mu_'+some_str + '.png')
+
 def get_data():
     return np.random.normal(size=10, loc=2.)
 
-with pm.Model() as model:
-    my_mu = pm.Normal('mu', mu=0, sd=120)
-    my_sd = pm.HalfNormal('sd', sd=10)
-
-show_sample(my_mu, "mu_prior")
-show_sample(my_sd, "sd_prior")
-
-test_val=0
-for n in range(10):
+current_mean_my_mu=-3.0
+current_mean_my_sd = 12
+plt.figure(figsize=(8,2))
+num_iterations = 25
+for iteration in range(num_iterations):
     data = get_data()
-    iter_name = "iter_" + str(n)
-    with model:
-        my_mu.testval = test_val
+    iter_name = "iter_" + str(iteration)
+    with pm.Model() as model:
+        my_mu = pm.Normal('mu', mu=current_mean_my_mu, sd=current_mean_my_sd)
+        my_sd = pm.HalfNormal('sd', sd=10)
         n = pm.Normal(iter_name, mu=my_mu, sd=my_sd, observed=data)
-        v_params = pm.variational.advi(model=model, n=2000)
-        show_posterior(v_params, data, iter_name)
-        test_val = v_params.means['mu']
+        v_params = pm.variational.advi(model=model, n=5000)
+        current_mean_my_mu = v_params.means['mu']
+        current_mean_my_sd = v_params.stds['mu']
+        color = float(num_iterations - iteration)/float(num_iterations)
+        show_only_posterior(v_params, iter_name, color)
