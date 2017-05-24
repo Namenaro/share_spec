@@ -1,21 +1,55 @@
 # -*- coding: utf-8 -*
 
+import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
-sns.set_style('white')
-from sklearn import datasets
-from sklearn.preprocessing import scale
-from sklearn.cross_validation import train_test_split
-from sklearn.datasets import make_moons
+from pymc3 import sample
+from pymc3 import Slice
+from pymc3 import find_MAP
+from scipy import optimize
+from pymc3 import summary
+from pymc3 import traceplot
+from pymc3 import Model, Normal, HalfNormal
+
+# Initialize random number generator
+np.random.seed(123)
+
+# True parameter values
+alpha, sigma = 1, 1
+beta = 1.5
+
+# Size of dataset
+size = 100
+
+# Predictor variable
+X = np.random.randn(size)
 
 
-X, Y = make_moons(noise=0.2, random_state=0, n_samples=1000)
-X = scale(X)
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=.5)
-fig, ax = plt.subplots()
-ax.scatter(X[Y==0, 0], X[Y==0, 1], label='Class 0')
-ax.scatter(X[Y==1, 0], X[Y==1, 1], color='r', label='Class 1')
-sns.despine()
-ax.legend()
-ax.set(xlabel='X', ylabel='Y', title='Toy binary classification data set')
-plt.show()
+# Simulate outcome variable
+Y = alpha + beta*X + np.random.randn(size)*sigma
+
+basic_model = Model()
+with basic_model:
+
+    # Priors for unknown model parameters
+    alpha = Normal('alpha', mu=0, sd=10)
+    beta = Normal('beta', mu=0, sd=10)
+    sigma = HalfNormal('sigma', sd=1)
+
+    # Likelihood (sampling distribution) of observations
+    Y_obs = Normal('Y_obs', mu=alpha + beta*X, sd=sigma, observed=Y)
+
+
+
+with basic_model:
+    # obtain starting values via MAP
+    start = find_MAP(fmin=optimize.fmin_powell)
+
+    # instantiate sampler
+    step = Slice(vars=[sigma])
+
+    # draw 5000 posterior samples
+    trace = sample(500, step=step, start=start)
+
+    traceplot(trace)
+    plt.show()
+    summary(trace)

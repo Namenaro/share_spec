@@ -11,9 +11,9 @@ sns.set_style('white')
 from sklearn import datasets
 from sklearn.preprocessing import scale
 from sklearn.cross_validation import train_test_split
-from sklearn.datasets import make_moons
+from sklearn.datasets import make_blobs
 
-X, Y = make_moons(noise=0.2, random_state=0, n_samples=1000)
+X, Y = make_blobs(n_features=2, centers=3)
 X = scale(X)
 X = X.astype(floatX)
 Y = Y.astype(floatX)
@@ -24,12 +24,12 @@ ax1.scatter(X[Y==0, 0], X[Y==0, 1], label='Class 0')
 ax1.scatter(X[Y==1, 0], X[Y==1, 1], color='r', label='Class 1')
 sns.despine()
 ax1.legend()
-ax1.set(xlabel='X', ylabel='Y', title='Toy binary classification data set')
+ax1.set(xlabel='X', ylabel='Y', title='Toy data set')
 
 print "dataset generated"
 
-#ann_input = theano.shared(X_train)
-#ann_output = theano.shared(Y_train)
+ann_input = theano.shared(X_train)
+ann_output = theano.shared(Y_train)
 
 n_hidden = 5
 
@@ -37,42 +37,42 @@ n_hidden = 5
 init_1 = np.random.randn(X.shape[1], n_hidden)
 init_2 = np.random.randn(n_hidden, n_hidden)
 init_out = np.random.randn(n_hidden)
-print str(init_out)
+
 print "create model..."
 with pm.Model() as neural_network:
-    ann_input = pm.Deterministic('ann_inp', theano.shared(X_train))
-    ann_output = pm.Deterministic('ann_outp',theano.shared(Y_train))
     # Weights from input to hidden layer
-    weights_in_1 = pm.Normal('w_in_1', init_1, sd=1,
-                             shape=(X.shape[1], n_hidden))
+    weights_in_1 = pm.Normal('w_in_1', 0, sd=1,
+                             shape=(X.shape[1], n_hidden),
+                             testval=init_1)
 
     # Weights from 1st to 2nd layer
-    weights_1_2 = pm.Normal('w_1_2', init_2, sd=1,
-                            shape=(n_hidden, n_hidden))
-    #                        testval=init_2)
+    weights_1_2 = pm.Normal('w_1_2', 0, sd=1,
+                            shape=(n_hidden, n_hidden),
+                            testval=init_2)
 
     # Weights from hidden lay2er to output
-    weights_2_out = pm.Normal('w_2_out', init_out, sd=1,
-                              shape=(n_hidden,))
+    weights_2_out = pm.Normal('w_2_out', 0, sd=1,
+                              shape=(n_hidden,),
+                              testval=init_out)
 
     # Build neural-network using tanh activation function
     act_1 = T.tanh(T.dot(ann_input,
                          weights_in_1))
     act_2 = T.tanh(T.dot(act_1,
                          weights_1_2))
-    act_out = T.nnet.sigmoid(T.dot(act_1,
+    act_out = T.nnet.sigmoid(T.dot(act_2,
                                    weights_2_out))
 
     # Binary classification -> Bernoulli likelihood
-    out = pm.Bernoulli('out',
+    out = pm.Categorical('out',
                        act_out,
                        observed=ann_output)
 
 
     print "start bayesian inference on model.."
     # Run ADVI which returns posterior means, standard deviations, and the evidence lower bound (ELBO)
-    v_params = pm.variational.advi(n=10000)
-    print str(v_params.means['w_2_out'])
+    v_params = pm.variational.advi(n=50000)
+
 
     trace = pm.variational.sample_vp(v_params, draws=5000)
 
@@ -80,10 +80,9 @@ with pm.Model() as neural_network:
     ax2.set(xlabel='iteration', ylabel='ELBO', title='ELBO during optimisation')
 
 
-with neural_network:
     # Replace shared variables with testing set
-    neural_network.deterministics['ann_inp'].set_value(X_test)
-    neural_network.deterministics['ann_outp'].set_value(Y_test)
+    ann_input.set_value(X_test)
+    ann_output.set_value(Y_test)
 
     # Creater posterior predictive samples
     ppc = pm.sample_ppc(trace, model=neural_network, samples=500)
@@ -91,7 +90,15 @@ with neural_network:
     # Use probability of > 0.5 to assume prediction of class 1
     pred = ppc['out'].mean(axis=0) > 0.5
 
+    # Replace shared variables with testing set
+    ann_input.set_value(X_test)
+    ann_output.set_value(Y_test)
 
+    # Creater posterior predictive samples
+    ppc = pm.sample_ppc(trace, model=neural_network, samples=500)
+
+    # Use probability of > 0.5 to assume prediction of class 1
+    pred = ppc['out'].mean(axis=0) > 0.5
 
 
     ax3.scatter(X_test[pred == 0, 0], X_test[pred == 0, 1])
