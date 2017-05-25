@@ -54,15 +54,23 @@ class MicroModule:
     def add_episode_to_memory(self, X, Y):
         self.episodic_memory.add_new_episode(X, Y)
 
+    def set_episodic_memory(self, X, Y):
+        self.episodic_memory.clean()
+        self.episodic_memory.X = X
+        self.episodic_memory.Y = Y
+
     def try_consolidation(self):
         if self.episodic_memory.contains_enough_memories():
             self.learn()
+            self.episodic_memory.clean() #TODO может не всегда?
 
     def learn(self):
         self.pymc3_model_object = None
-        ann_input = theano.shared(self.episodic_memory.X)
-        ann_output = theano.shared(self.episodic_memory.Y)
-        with pm.Model() as neural_network:
+        with pm.Model() as self.pymc3_model_object:
+            ann_input = pm.Deterministic(name='input',
+                                         var=theano.shared(self.episodic_memory.X))
+            ann_output = pm.Deterministic(name='output',
+                                         var=theano.shared(self.episodic_memory.Y))
             # задаем априорные распредления по параметрам нейросети
             W01 = pm.Normal('w01',
                             mu=self.params.W01_means,
@@ -81,10 +89,10 @@ class MicroModule:
             out = pm.Bernoulli('my_out',
                                act_out,
                                observed=ann_output)
-            v_params = pm.variational.advi(n=50000)
-            self.params.reset(v_params)
+            v_params = pm.variational.advi(n=10000)
+            self.params.reset(v_params) # запоминаем параметры постериора, чтоб в будущем считать их приором (рекурсия)
             self.sample_from_posterior_params = pm.variational.sample_vp(v_params, draws=5000)
-        self.pymc3_model_object = neural_network
+
 
     def feed_episode(self, X, Y):
         """
@@ -93,14 +101,39 @@ class MicroModule:
         :param episode: точка Х
         :return: ответ, неуверенность в ответе
         """
-        with self.pymc3_model_object:
-            ann_input.set_value(X)
-            ann_output.set_value(Y)
+        self.pymc3_model_object['input'].set_value(X)
+        self.pymc3_model_object['output'].set_value(Y) # TODO удалить нафиг, да?
 
-            ppc = pm.sample_ppc(trace=self.sample_from_posterior_params,
+        ppc = pm.sample_ppc(trace=self.sample_from_posterior_params,
                                 model=self.pymc3_model_object,
                                 samples=500)
 
-            # Если матожидание выборки > 0.5 то класс 1, иначе класс 0
-            prediction = ppc['my_out'].mean(axis=0) > 0.5
+        smooth_prediction = ppc['my_out'].mean(axis=0)  # вероятность того, что класс = 1
+        unsertainty = ppc['my_out'].std(axis=0)  # дисперсия гипотез пропорциональна "неуверенности" модели в ее "лучшей" гипотезе
+        return smooth_prediction, unsertainty
 
+if __name__ == "__main__":
+    # протестируем работоспособность отдельного модуля на линейно разделимой бинарной классификации
+    from sklearn.datasets.samples_generator import make_blobs
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    sns.set_style('white')
+
+    centers = [[1, 1], [-1, -1]]
+    X, Y = make_blobs(n_samples=10, centers=centers, n_features=2, cluster_std=0.5,
+                                random_state=0)
+    plt.figure(1)
+    plt.scatter(X[Y==0, 0], X[Y==0, 1], label='Class 0')
+    plt.scatter(X[Y == 1, 0], X[Y == 1, 1], color='r', label='Class 1')
+    sns.despine()
+    plt.xlabel('X')
+    plt.ylabel('Y')
+    plt.title('Real data')
+    plt.show()
+    # создадим модуль и обучим его
+    module = MicroModule(module_id=666)
+    module.set_episodic_memory(X, Y)
+    module.learn()
+    module.episodic_memory.clean()
+    # визуализиуем его ответы
+    # сгенерируем сетку, и для каждого узла сетки посчитаем ответ сети , и отрисуем

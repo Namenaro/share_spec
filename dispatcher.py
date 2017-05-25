@@ -11,6 +11,10 @@ class DataGenerator:
         X, Y = make_moons(noise=0.2, random_state=0, n_samples=1)
         return X, Y
 
+    def get_n_points(self):
+        X, Y = make_moons(noise=0.2, random_state=0, n_samples=5)
+        return X, Y
+
 
 class Dispatcher:
     def __init__(self, num_modules=6):
@@ -19,6 +23,15 @@ class Dispatcher:
         for i in range(num_modules):
             self.modules[i] = MicroModule(module_id=i)
 
+    def simple_initialisation(self):
+        # насемплим немного образцов
+        # раскидаем их случайно (?) по модулям
+        # обучим модули
+        for id, module in self.modules.items():
+            X, Y = self.data_generator.get_n_points()
+            module.set_episodic_memory(X, Y)
+            module.learn()
+            module.episodic_memory.clean()
 
     def feed_next_data_point_to_modules(self):
         """
@@ -30,7 +43,7 @@ class Dispatcher:
         real_ans = Y[0]
         right_answers_unsertainties = {}
         wrong_answers_unsertainties = {}
-        for module in self.modules:
+        for key, module in self.modules:
             ans, sertainty = module.feed_episode(X)
             if ans == real_ans:
                 right_answers_unsertainties[module.module_id] = sertainty
@@ -53,5 +66,5 @@ class Dispatcher:
         self.modules[winner_id].add_episode_to_memory(X, Y)
 
     def try_consolidation(self):
-        for module in self.modules:
+        for key, module in self.modules:
             module.try_consolidation()
