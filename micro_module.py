@@ -112,7 +112,7 @@ class MicroModule:
         unsertainty = ppc['my_out'].std(axis=0)  # дисперсия гипотез пропорциональна "неуверенности" модели в ее "лучшей" гипотезе
         return smooth_prediction, unsertainty
 
-if __name__ == "__main__":
+def test():
     # протестируем работоспособность отдельного модуля на линейно разделимой бинарной классификации
     from sklearn.datasets.samples_generator import make_blobs
     import matplotlib.pyplot as plt
@@ -121,9 +121,9 @@ if __name__ == "__main__":
 
     centers = [[1, 1], [-1, -1]]
     X, Y = make_blobs(n_samples=10, centers=centers, n_features=2, cluster_std=0.5,
-                                random_state=0)
+                      random_state=0)
     plt.figure(1)
-    plt.scatter(X[Y==0, 0], X[Y==0, 1], label='Class 0')
+    plt.scatter(X[Y == 0, 0], X[Y == 0, 1], label='Class 0')
     plt.scatter(X[Y == 1, 0], X[Y == 1, 1], color='r', label='Class 1')
     sns.despine()
     plt.xlabel('X')
@@ -137,3 +137,7 @@ if __name__ == "__main__":
     module.episodic_memory.clean()
     # визуализиуем его ответы
     # сгенерируем сетку, и для каждого узла сетки посчитаем ответ сети , и отрисуем
+
+
+if __name__ == "__main__":
+    pass
