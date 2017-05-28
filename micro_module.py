@@ -26,8 +26,8 @@ class EpisodicMemory:
         return False
 
     def clean(self):
-        del self.X
-        del self.Y
+        self.X = []
+        self.Y = []
 
 
 class ModuleParams:
