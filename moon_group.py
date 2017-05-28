@@ -29,7 +29,7 @@ def experiment_1(folder_for_results):
             directory = 'iter_' + str(i)
             if not os.path.exists(directory):
                 os.makedirs(directory)
-            for key, micro_module in my_dispatcher.modules:
+            for key, micro_module in my_dispatcher.modules.items():
                 micro_module.visualise_model(realX, realY, directory)
 
 if __name__ == "__main__":
