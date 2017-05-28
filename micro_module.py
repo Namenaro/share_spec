@@ -66,10 +66,10 @@ class MicroModule:
 
     def try_consolidation(self):
         if self.episodic_memory.contains_enough_memories():
-            self.learn()
+            self.learn(2000)
             self.episodic_memory.clean() #TODO может не всегда?
 
-    def learn(self):
+    def learn(self, n_iters_advi):
         self.pymc3_model_object = None
         with pm.Model() as self.pymc3_model_object:
             ann_input = pm.Deterministic(name='input',
@@ -94,7 +94,7 @@ class MicroModule:
             out = pm.Bernoulli('my_out',
                                act_out,
                                observed=ann_output)
-            v_params = pm.variational.advi(n=10000)
+            v_params = pm.variational.advi(n=n_iters_advi)
             self.params.reset(v_params) # запоминаем параметры постериора, чтоб в будущем считать их приором (рекурсия)
             self.sample_from_posterior_params = pm.variational.sample_vp(v_params, draws=5000)
 
@@ -104,7 +104,7 @@ class MicroModule:
         self.pymc3_model_object['input'].set_value(X)
         self.pymc3_model_object['output'].set_value(Y)
 
-    def feed_episode(self, X, Y):
+    def feed_episode(self, X):
         """
         для данного эпизода модель генерирует распределение ppc (на основе хранящейся выборки из апостериорного рапсределения)
         возвращаем ответ нейросети и неуверенность в этом ответе (дисперсия ppc)
@@ -120,7 +120,7 @@ class MicroModule:
         unsertainty = ppc['my_out'].std(axis=0)  # дисперсия гипотез пропорциональна "неуверенности" модели в ее "лучшей" гипотезе
         return smooth_prediction, unsertainty
 
-    def visualise_model(self, realX, realY, folder_name):
+    def visualise_model(self, realX, realY, directory=None):
         nx = 100
         ny = 100
         grid = np.mgrid[-3:3:(nx * 1j), -3:3:(ny * 1j)]
@@ -131,15 +131,20 @@ class MicroModule:
                             model=self.pymc3_model_object,
                             samples=500)
         visualizer = Visualizer()
-        ax = visualizer.visualise_propbability(grid[0], grid[1], ppc)
-        ax.scatter(realX[realY == 0, 0], realX[realY == 0, 1])
-        ax.scatter(realX[realY == 1, 0], realX[realY == 1, 1], color='r')
-        plt.show()
+        fig, (ax1, ax2) = plt.subplots(1, 2, sharex=True)
+        visualizer.visualise_propbability(ax1, grid[0], grid[1], ppc)
+        visualizer.visualise_propbability(ax2, grid[0], grid[1], ppc)
+        ax1.scatter(realX[realY == 0, 0], realX[realY == 0, 1])
+        ax1.scatter(realX[realY == 1, 0], realX[realY == 1, 1], color='r')
+        ax2.scatter(realX[realY == 0, 0], realX[realY == 0, 1])
+        ax2.scatter(realX[realY == 1, 0], realX[realY == 1, 1], color='r')
+        if directory is not None:
+            plt.savefig(directory + "/" + str(self.module_id) + ".png")
+        else:
+            plt.show()
 
 def test():
     # протестируем работоспособность отдельного модуля на линейно разделимой бинарной классификации
-
-
     centers = [[1, 1], [-1, -1]]
     X, Y = make_blobs(n_samples=10, centers=centers, n_features=2, cluster_std=0.5,
                       random_state=0)

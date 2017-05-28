@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*
 from sklearn.preprocessing import scale
 from sklearn.datasets import make_moons
+import os
+import glob
 from micro_module import MicroModule
 
 class DataGenerator:
@@ -30,7 +32,7 @@ class Dispatcher:
         for id, module in self.modules.items():
             X, Y = self.data_generator.get_n_points()
             module.set_episodic_memory(X, Y)
-            module.learn()
+            module.learn(1000)
             module.episodic_memory.clean()
 
     def feed_next_data_point_to_modules(self):
@@ -43,7 +45,7 @@ class Dispatcher:
         real_ans = Y[0]
         right_answers_unsertainties = {}
         wrong_answers_unsertainties = {}
-        for key, module in self.modules:
+        for key, module in self.modules.items():
             ans, sertainty = module.feed_episode(X)
             if ans == real_ans:
                 right_answers_unsertainties[module.module_id] = sertainty
@@ -66,5 +68,14 @@ class Dispatcher:
         self.modules[winner_id].add_episode_to_memory(X, Y)
 
     def try_consolidation(self):
-        for key, module in self.modules:
+        for key, module in self.modules.items():
             module.try_consolidation()
+
+    def setup_folder_for_results(self, main_folder='results' ):
+        if not os.path.exists(main_folder):
+            os.makedirs(main_folder)
+        else:
+            files = glob.glob('/' + main_folder + '/*')
+            for f in files:
+                os.remove(f)
+        os.chdir(main_folder)
