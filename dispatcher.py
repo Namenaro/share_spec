@@ -59,11 +59,11 @@ class Dispatcher:
         if len(right_answers_unsertainties) > 0:
             sorted_ids = sorted(right_answers_unsertainties.items(),
                                 key=lambda x: x[1])  # сначала маленькие, потом ебольшие
-            winner_id = sorted_ids[0]
+            winner_id = sorted_ids[0][0]
         else:
             sorted_ids = sorted(wrong_answers_unsertainties.items(), key=lambda x: x[1],
                                 reverse=True)  # сначала большие, потом маленькие
-            winner_id = sorted_ids[0]
+            winner_id = sorted_ids[0][0]
         assert winner_id != -1
         self.modules[winner_id].add_episode_to_memory(X, Y)
 
