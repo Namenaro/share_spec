@@ -4,6 +4,11 @@ floatX = theano.config.floatX
 import pymc3 as pm
 import theano.tensor as T
 import numpy as np
+from sklearn.datasets.samples_generator import make_blobs
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set_style('white')
+from model_visualiser import Visualizer
 
 class EpisodicMemory:
     def __init__(self):
@@ -93,6 +98,11 @@ class MicroModule:
             self.params.reset(v_params) # запоминаем параметры постериора, чтоб в будущем считать их приором (рекурсия)
             self.sample_from_posterior_params = pm.variational.sample_vp(v_params, draws=5000)
 
+    def set_input_to_model(self, X, Y=None):
+        if Y is None:
+           Y = np.ones(X.shape[1], dtype=np.int8)  # заглушка
+        self.pymc3_model_object['input'].set_value(X)
+        self.pymc3_model_object['output'].set_value(Y)
 
     def feed_episode(self, X, Y):
         """
@@ -101,9 +111,7 @@ class MicroModule:
         :param episode: точка Х
         :return: ответ, неуверенность в ответе
         """
-        self.pymc3_model_object['input'].set_value(X)
-        self.pymc3_model_object['output'].set_value(Y) # TODO удалить нафиг, да?
-
+        self.set_input_to_model(X)
         ppc = pm.sample_ppc(trace=self.sample_from_posterior_params,
                                 model=self.pymc3_model_object,
                                 samples=500)
@@ -112,12 +120,25 @@ class MicroModule:
         unsertainty = ppc['my_out'].std(axis=0)  # дисперсия гипотез пропорциональна "неуверенности" модели в ее "лучшей" гипотезе
         return smooth_prediction, unsertainty
 
+    def visualise_model(self, realX, realY, folder_name):
+        nx = 100
+        ny = 100
+        grid = np.mgrid[-3:3:(nx * 1j), -3:3:(ny * 1j)]
+        grid_2d = grid.reshape(2, -1).T
+        self.set_input_to_model(grid_2d) # в кач-ве входных данных - узлы решетки
+        # в этих узлах считаем распределения уверенности
+        ppc = pm.sample_ppc(trace=self.sample_from_posterior_params,
+                            model=self.pymc3_model_object,
+                            samples=500)
+        visualizer = Visualizer()
+        ax = visualizer.visualise_propbability(grid[0], grid[1], ppc)
+        ax.scatter(realX[realY == 0, 0], realX[realY == 0, 1])
+        ax.scatter(realX[realY == 1, 0], realX[realY == 1, 1], color='r')
+        plt.show()
+
 def test():
     # протестируем работоспособность отдельного модуля на линейно разделимой бинарной классификации
-    from sklearn.datasets.samples_generator import make_blobs
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    sns.set_style('white')
+
 
     centers = [[1, 1], [-1, -1]]
     X, Y = make_blobs(n_samples=10, centers=centers, n_features=2, cluster_std=0.5,
@@ -134,10 +155,9 @@ def test():
     module = MicroModule(module_id=666)
     module.set_episodic_memory(X, Y)
     module.learn()
-    module.episodic_memory.clean()
     # визуализиуем его ответы
-    # сгенерируем сетку, и для каждого узла сетки посчитаем ответ сети , и отрисуем
+    module.visualise_model(X, Y)
 
 
 if __name__ == "__main__":
-    pass
+    test()

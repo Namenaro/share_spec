@@ -11,8 +11,8 @@ class DataGenerator:
         X, Y = make_moons(noise=0.2, random_state=0, n_samples=1)
         return X, Y
 
-    def get_n_points(self):
-        X, Y = make_moons(noise=0.2, random_state=0, n_samples=5)
+    def get_n_points(self, n_samples=5):
+        X, Y = make_moons(noise=0.2, random_state=0, n_samples=n_samples)
         return X, Y
 
 

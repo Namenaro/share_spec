@@ -69,7 +69,7 @@ with pm.Model() as neural_network:
 
     print "start bayesian inference on model.."
     # Run ADVI which returns posterior means, standard deviations, and the evidence lower bound (ELBO)
-    v_params = pm.variational.advi(n=50000)
+    v_params = pm.variational.advi(n=500)
 
 
     trace = pm.variational.sample_vp(v_params, draws=5000)
@@ -87,7 +87,8 @@ with pm.Model() as neural_network:
 
     # Use probability of > 0.5 to assume prediction of class 1
     pred = ppc['out'].mean(axis=0) > 0.5
-
+    print "perd.len:" + str(pred.shape)
+    print "x-test: " + str(X_test.shape)
     ax3.scatter(X_test[pred == 0, 0], X_test[pred == 0, 1])
     ax3.scatter(X_test[pred == 1, 0], X_test[pred == 1, 1], color='r')
     sns.despine()
@@ -100,11 +101,13 @@ with pm.Model() as neural_network:
     grid = np.mgrid[-3:3:100j, -3:3:100j]
     grid_2d = grid.reshape(2, -1).T
     X, Y = grid
-    dummy_out = np.ones(grid.shape[1], dtype=np.int8)
+    dummy_out = np.ones((5,), dtype=np.int8)
 
     ann_input.set_value(grid_2d.astype(np.float32))
     ann_output.set_value(dummy_out)
 
+    print "grid_2d: shape " + str(grid_2d.shape)
+    print "dummy_out " + str (dummy_out.shape)
     # Creater posterior predictive samples
     ppc = pm.sample_ppc(trace, model=neural_network, samples=500)
 
