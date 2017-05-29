@@ -19,7 +19,7 @@ class DataGenerator:
 
 
 class Dispatcher:
-    def __init__(self, num_modules=6):
+    def __init__(self, num_modules):
         self.data_generator = DataGenerator()
         self.modules = {}
         for i in range(num_modules):
@@ -32,7 +32,7 @@ class Dispatcher:
         for id, module in self.modules.items():
             X, Y = self.data_generator.get_n_points()
             module.set_episodic_memory(X, Y)
-            module.learn(1000)
+            module.learn(1400)
             module.episodic_memory.clean()
 
     def feed_next_data_point_to_modules(self):
@@ -46,8 +46,9 @@ class Dispatcher:
         right_answers_unsertainties = {}
         wrong_answers_unsertainties = {}
         for key, module in self.modules.items():
-            ans, sertainty = module.feed_episode(X)
-            if ans == real_ans:
+            smooth_ans, sertainty = module.feed_episode(X)
+            strict_ans = (smooth_ans>0.5)
+            if strict_ans == real_ans:
                 right_answers_unsertainties[module.module_id] = sertainty
             else:
                 wrong_answers_unsertainties[module.module_id] = sertainty

@@ -12,7 +12,7 @@ from model_visualiser import Visualizer
 
 class EpisodicMemory:
     def __init__(self):
-        self.MAX_EPISODES = 5
+        self.MAX_EPISODES = 8
         self.X = []
         self.Y = []
 
@@ -48,6 +48,7 @@ class ModuleParams:
 
 class MicroModule:
     def __init__(self, module_id):
+        print "created module " + str(module_id)
         self.module_id = module_id
         self.N_INPUT = 2
         self.N_HIDDEN = 2
@@ -66,16 +67,16 @@ class MicroModule:
 
     def try_consolidation(self):
         if self.episodic_memory.contains_enough_memories():
-            self.learn(2000)
+            self.learn(1500)
             self.episodic_memory.clean() #TODO может не всегда?
 
     def learn(self, n_iters_advi):
         self.pymc3_model_object = None
         with pm.Model() as self.pymc3_model_object:
             ann_input = pm.Deterministic(name='input',
-                                         var=theano.shared(self.episodic_memory.X))
+                                         var=theano.shared(np.array(self.episodic_memory.X)))
             ann_output = pm.Deterministic(name='output',
-                                         var=theano.shared(self.episodic_memory.Y))
+                                         var=theano.shared(np.array(self.episodic_memory.Y)))
             # задаем априорные распредления по параметрам нейросети
             W01 = pm.Normal('w01',
                             mu=self.params.W01_means,
@@ -87,6 +88,7 @@ class MicroModule:
                             sd=self.params.W12_sds,
                             shape=(self.N_HIDDEN,))
             # связываем эти параметры-распределения в нейросеть
+            print "ann_input " + str(type(ann_input))
             act_1 = T.tanh(T.dot(ann_input, W01))  # активация скрытого слоя
             act_out = T.nnet.sigmoid(T.dot(act_1, W12)) # активация выходного нейрона
 
@@ -133,7 +135,7 @@ class MicroModule:
         visualizer = Visualizer()
         fig, (ax1, ax2) = plt.subplots(1, 2, sharex=True)
         visualizer.visualise_propbability(ax1, grid[0], grid[1], ppc)
-        visualizer.visualise_propbability(ax2, grid[0], grid[1], ppc)
+        visualizer.visualise_unsertainty(ax2, grid[0], grid[1], ppc)
         ax1.scatter(realX[realY == 0, 0], realX[realY == 0, 1])
         ax1.scatter(realX[realY == 1, 0], realX[realY == 1, 1], color='r')
         ax2.scatter(realX[realY == 0, 0], realX[realY == 0, 1])
