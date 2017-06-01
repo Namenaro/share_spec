@@ -132,7 +132,7 @@ class MicroModule:
                             samples=500)
         unsertainties = ppc['my_out'].std(axis=0)
         probabilities = ppc['my_out'].mean(axis=0)
-        return grid[0], grid[1], unsertainties, probabilities
+        return grid[0], grid[1], unsertainties.reshape(grid_side, grid_side), probabilities.reshape(grid_side, grid_side)
 
 
 

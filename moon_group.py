@@ -53,7 +53,7 @@ def experiment_1(folder_for_results, settings):
         print "iteration: " + str(i)
         my_dispatcher.feed_next_data_point_to_modules()
         my_dispatcher.try_consolidation(advi_iterations=settings.iters_consolidation)
-        if i % 4 == 0:
+        if i % 2 == 0:
             directory = 'iter_' + str(i)
             if not os.path.exists(directory):
                 os.makedirs(directory)
@@ -68,6 +68,7 @@ def experiment_1(folder_for_results, settings):
                                               x2=x2,
                                               unsertainties=unsertainties,
                                               probabilities=probabilities,
+                                              module_id=micro_module.module_id,
                                               directory=directory)
                 arr_propbabilities.append(probabilities)
                 arr_unsertainties.append(unsertainties)
