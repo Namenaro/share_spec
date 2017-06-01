@@ -13,26 +13,26 @@ class DataGenerator:
         X, Y = make_moons(noise=0.2, random_state=0, n_samples=1)
         return X, Y
 
-    def get_n_points(self, n_samples=5):
+    def get_n_points(self, n_samples):
         X, Y = make_moons(noise=0.2, random_state=0, n_samples=n_samples)
         return X, Y
 
 
 class Dispatcher:
-    def __init__(self, num_modules):
+    def __init__(self, num_modules, enought_episodes_num):
         self.data_generator = DataGenerator()
         self.modules = {}
         for i in range(num_modules):
-            self.modules[i] = MicroModule(module_id=i)
+            self.modules[i] = MicroModule(module_id=i, enought_episodes_num=enought_episodes_num)
 
-    def simple_initialisation(self):
+    def simple_initialisation(self, advi_iterations, n_samples):
         # насемплим немного образцов
         # раскидаем их случайно (?) по модулям
         # обучим модули
         for id, module in self.modules.items():
-            X, Y = self.data_generator.get_n_points()
+            X, Y = self.data_generator.get_n_points(n_samples)
             module.set_episodic_memory(X, Y)
-            module.learn(1400)
+            module.learn(advi_iterations)
             module.episodic_memory.clean()
 
     def feed_next_data_point_to_modules(self):
@@ -68,9 +68,9 @@ class Dispatcher:
         assert winner_id != -1
         self.modules[winner_id].add_episode_to_memory(X, Y)
 
-    def try_consolidation(self):
+    def try_consolidation(self, advi_iterations):
         for key, module in self.modules.items():
-            module.try_consolidation()
+            module.try_consolidation(advi_iterations)
 
     def setup_folder_for_results(self, main_folder='results' ):
         if not os.path.exists(main_folder):

@@ -11,8 +11,8 @@ sns.set_style('white')
 from model_visualiser import Visualizer
 
 class EpisodicMemory:
-    def __init__(self):
-        self.MAX_EPISODES = 8
+    def __init__(self, enought_episodes_num):
+        self.MAX_EPISODES = enought_episodes_num
         self.X = []
         self.Y = []
 
@@ -47,12 +47,12 @@ class ModuleParams:
         self.W12_sds = v_params.stds['w12']
 
 class MicroModule:
-    def __init__(self, module_id):
+    def __init__(self, module_id, enought_episodes_num):
         print "created module " + str(module_id)
         self.module_id = module_id
         self.N_INPUT = 2
         self.N_HIDDEN = 2
-        self.episodic_memory = EpisodicMemory()
+        self.episodic_memory = EpisodicMemory(enought_episodes_num)
         self.params = ModuleParams(n_input=self.N_INPUT, n_hidden=self.N_HIDDEN)
         self.sample_from_posterior_params = None
         self.pymc3_model_object = None
@@ -65,9 +65,9 @@ class MicroModule:
         self.episodic_memory.X = X
         self.episodic_memory.Y = Y
 
-    def try_consolidation(self):
+    def try_consolidation(self, advi_iterations):
         if self.episodic_memory.contains_enough_memories():
-            self.learn(1500)
+            self.learn(advi_iterations)
             self.episodic_memory.clean() #TODO может не всегда?
 
     def learn(self, n_iters_advi):
@@ -122,28 +122,20 @@ class MicroModule:
         unsertainty = ppc['my_out'].std(axis=0)  # дисперсия гипотез пропорциональна "неуверенности" модели в ее "лучшей" гипотезе
         return smooth_prediction, unsertainty
 
-    def visualise_model(self, realX, realY, directory=None):
-        nx = 100
-        ny = 100
-        grid = np.mgrid[-3:3:(nx * 1j), -3:3:(ny * 1j)]
+    def get_unserts_and_probs_on_grid(self, grid_side):
+        grid = np.mgrid[-3:3:(grid_side * 1j), -3:3:(grid_side * 1j)]
         grid_2d = grid.reshape(2, -1).T
-        self.set_input_to_model(grid_2d) # в кач-ве входных данных - узлы решетки
+        self.set_input_to_model(grid_2d)  # в кач-ве входных данных - узлы решетки
         # в этих узлах считаем распределения уверенности
         ppc = pm.sample_ppc(trace=self.sample_from_posterior_params,
                             model=self.pymc3_model_object,
                             samples=500)
-        visualizer = Visualizer()
-        fig, (ax1, ax2) = plt.subplots(1, 2, sharex=True)
-        visualizer.visualise_propbability(ax1, grid[0], grid[1], ppc)
-        visualizer.visualise_unsertainty(ax2, grid[0], grid[1], ppc)
-        ax1.scatter(realX[realY == 0, 0], realX[realY == 0, 1])
-        ax1.scatter(realX[realY == 1, 0], realX[realY == 1, 1], color='r')
-        ax2.scatter(realX[realY == 0, 0], realX[realY == 0, 1])
-        ax2.scatter(realX[realY == 1, 0], realX[realY == 1, 1], color='r')
-        if directory is not None:
-            plt.savefig(directory + "/" + str(self.module_id) + ".png")
-        else:
-            plt.show()
+        unsertainties = ppc['my_out'].std(axis=0)
+        probabilities = ppc['my_out'].mean(axis=0)
+        return grid[0], grid[1], unsertainties, probabilities
+
+
+
 
 def test():
     # протестируем работоспособность отдельного модуля на линейно разделимой бинарной классификации
