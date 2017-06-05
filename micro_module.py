@@ -46,17 +46,28 @@ class ModuleParams:
         self.W12_means = v_params.means['w12']
         self.W12_sds = v_params.stds['w12']
 
-    def print_params_to_file(self):
-        pass
+    def print_params_to_file(self, filename):
+        filename = filename + '.txt'
+        with file(filename, 'w') as outfile:
+            outfile.write('# W01_sds shape: {0}\n'.format(self.W01_sds.shape))
+            np.savetxt(outfile, self.W01_sds, fmt='%-7.2f')
+            outfile.write('# W12_sds shape: {0}\n'.format(self.W12_sds.shape))
+            np.savetxt(outfile, self.W12_sds, fmt='%-7.2f')
+            outfile.write('# W01_means shape: {0}\n'.format(self.W01_means.shape))
+            np.savetxt(outfile, self.W01_means, fmt='%-7.2f')
+            outfile.write('# W12_means shape: {0}\n'.format(self.W12_means.shape))
+            np.savetxt(outfile, self.W12_means, fmt='%-7.2f')
+
 
 class MicroModule:
     def __init__(self, module_id, enought_episodes_num):
         print "created module " + str(module_id)
         self.module_id = module_id
         self.N_INPUT = 2
-        self.N_HIDDEN = 2
+        self.N_HIDDEN = 3
         self.episodic_memory = EpisodicMemory(enought_episodes_num)
         self.params = ModuleParams(n_input=self.N_INPUT, n_hidden=self.N_HIDDEN)
+        self.params.print_params_to_file(str(module_id) + '_init_sds')
         self.sample_from_posterior_params = None
         self.pymc3_model_object = None
 

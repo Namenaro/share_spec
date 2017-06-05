@@ -61,6 +61,7 @@ def experiment_1(folder_for_results, settings):
             arr_unsertainties = []
             # визуализируем результаты каждого эл-та ансамбля по-отдельности
             for key, micro_module in my_dispatcher.modules.items():
+                micro_module.params.print_params_to_file(str(key) + '_iter_'+ str(i))
                 x1, x2, unsertainties, probabilities = micro_module.get_unserts_and_probs_on_grid(grid_side=100)
                 visualisation.visualise_model(realX=realX,
                                               realY=realY,
@@ -82,4 +83,4 @@ def experiment_1(folder_for_results, settings):
 
 
 if __name__ == "__main__":
-    experiment_1('results_test_6', dummy_settings)
+    experiment_1('results_with_log', normal_settins)
