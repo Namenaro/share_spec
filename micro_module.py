@@ -37,14 +37,21 @@ class ModuleParams:
     def __init__(self, n_input, n_hidden=5):
         self.W01_means = np.random.randn(n_input, n_hidden)
         self.W01_sds = np.random.random_sample((n_input, n_hidden))
+
         self.W12_means = np.random.randn(n_hidden)
         self.W12_sds = np.random.random_sample((n_hidden))
+
+        self.b01_means = np.random.randn(n_hidden)
+        self.b01_sds = np.random.random_sample(( n_hidden))
+
 
     def reset(self, v_params):
         self.W01_means = v_params.means['w01']
         self.W01_sds = v_params.stds['w01']
         self.W12_means = v_params.means['w12']
         self.W12_sds = v_params.stds['w12']
+        self.b01_means = v_params.means['b01']
+        self.b01_sds = v_params.stds['b01']
 
     def print_params_to_file(self, filename):
         filename = filename + '.txt'
@@ -57,6 +64,8 @@ class ModuleParams:
             np.savetxt(outfile, self.W01_means, fmt='%-7.2f')
             outfile.write('# W12_means shape: {0}\n'.format(self.W12_means.shape))
             np.savetxt(outfile, self.W12_means, fmt='%-7.2f')
+            outfile.write('# b01_means shape: {0}\n'.format(self.b01_means.shape))
+            np.savetxt(outfile, self.b01_means, fmt='%-7.2f')
 
 
 class MicroModule:
@@ -101,9 +110,15 @@ class MicroModule:
                             mu=self.params.W12_means,
                             sd=self.params.W12_sds,
                             shape=(self.N_HIDDEN,))
+
+            b01 = pm.Normal('b01',
+                            mu=self.params.b01_means,
+                            sd=self.params.b01_sds,
+                            shape=(self.N_HIDDEN,))
+
             # связываем эти параметры-распределения в нейросеть
             print "ann_input " + str(type(ann_input))
-            act_1 = T.tanh(T.dot(ann_input, W01))  # активация скрытого слоя
+            act_1 = T.tanh(T.dot(ann_input, W01) + b01)  # активация скрытого слоя
             act_out = T.nnet.sigmoid(T.dot(act_1, W12)) # активация выходного нейрона
 
             # Binary classification -> Bernoulli likelihood
