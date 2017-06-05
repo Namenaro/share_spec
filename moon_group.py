@@ -73,15 +73,13 @@ def experiment_1(folder_for_results, settings):
                 arr_propbabilities.append(probabilities)
                 arr_unsertainties.append(unsertainties)
             # визуализируем совместные результаты ансамбля
-            visualisation.visualise_specialisations(realX=realX,
+            visualisation.visualise_ensemle_unsertainty(realX=realX,
                                                     realY=realY,
                                                     x1=x1,
                                                     x2=x2,
                                                     arr_unsertainties=arr_unsertainties,
-                                                    arr_probabilities=arr_propbabilities,
-                                                    unsertainty_threshold=0.6,
                                                     directory=directory)
 
 
 if __name__ == "__main__":
-    experiment_1('results_test_c', dummy_settings)
+    experiment_1('results_test_6', dummy_settings)

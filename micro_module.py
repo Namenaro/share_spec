@@ -46,6 +46,9 @@ class ModuleParams:
         self.W12_means = v_params.means['w12']
         self.W12_sds = v_params.stds['w12']
 
+    def print_params_to_file(self):
+        pass
+
 class MicroModule:
     def __init__(self, module_id, enought_episodes_num):
         print "created module " + str(module_id)

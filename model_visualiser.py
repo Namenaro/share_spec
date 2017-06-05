@@ -34,6 +34,28 @@ class Visualizer:
         ax.scatter(realX[realY == 0, 0], realX[realY == 0, 1])
         ax.scatter(realX[realY == 1, 0], realX[realY == 1, 1], color='r')
 
+    def visualise_ensemle_unsertainty(self, realX, realY, x1, x2, arr_unsertainties, directory):
+        num_modules = len(arr_unsertainties)
+        assert x1.shape == x2.shape
+        result = np.full(x1.shape, 1.0)
+        # записываем наименьшие (т.е. самые хорошие) значения неуверенностей
+        for n in range(num_modules):
+            for (i, j), value in np.ndenumerate(x1):
+                unsertainty_of_module = arr_unsertainties[n][i, j]
+                if result[i, j] > unsertainty_of_module:
+                    result[i, j] = unsertainty_of_module
+        fig, ax = plt.subplots(1, 1, sharex=True)
+        cmap = sns.cubehelix_palette(light=1, as_cmap=True)
+        contour = ax.contourf(x1, x2, result, cmap=cmap)
+        cbar = plt.colorbar(contour, ax=ax)
+        cbar.ax.set_ylabel('Uncertainty of ensemble')
+        # для сравнения покажем реальный датасет
+        self._scatter_real_dataset(realX=realX, realY=realY, ax=ax)
+        if directory is not None:
+            plt.savefig(directory + "/" + "all_unsert" + ".png")
+        else:
+            plt.show()
+
     def visualise_specialisations(self, realX, realY, x1, x2, arr_probabilities, arr_unsertainties, unsertainty_threshold, directory):
         num_modules = len(arr_probabilities)
         assert len(arr_probabilities) == len(arr_unsertainties)
@@ -45,7 +67,7 @@ class Visualizer:
             for (i, j), value in np.ndenumerate(x1):
                 answer_of_module = arr_probabilities[n][i, j]
                 unsertainty_of_module = arr_unsertainties[n][i, j]
-                if unsertainty_of_module > unsertainty_threshold:
+                if unsertainty_of_module < unsertainty_threshold:
                     if result_prob[i, j] < answer_of_module:
                         result_prob[i, j] = answer_of_module
         #отрисовка ответа ансамбля
