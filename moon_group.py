@@ -83,4 +83,4 @@ def experiment_1(folder_for_results, settings):
 
 
 if __name__ == "__main__":
-    experiment_1('results_with_log', normal_settins)
+    experiment_1('results_with_ranf', normal_settins)

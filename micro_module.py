@@ -36,9 +36,9 @@ class ModuleParams:
     """
     def __init__(self, n_input, n_hidden=5):
         self.W01_means = np.random.randn(n_input, n_hidden)
-        self.W01_sds = np.random.randn(n_input, n_hidden)
+        self.W01_sds = np.random.random_sample((n_input, n_hidden))
         self.W12_means = np.random.randn(n_hidden)
-        self.W12_sds = np.random.randn(n_hidden)
+        self.W12_sds = np.random.random_sample((n_hidden))
 
     def reset(self, v_params):
         self.W01_means = v_params.means['w01']
