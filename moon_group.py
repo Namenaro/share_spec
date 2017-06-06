@@ -101,7 +101,7 @@ def experiment_2():
                                       num_modules=nm,
                                       enought_episodes_in_module=eeim,
                                       num_episodes_init=nei)
-        folder = str(ii)+"_"+str(nei)+"_",str(ic)+"_",str(nm)+"_",str(eeim)
+        folder = str(ii)+ "_" + str(nei) + "_" + str(ic) + "_" + str(nm) + "_" + str(eeim)
         experiment_1(folder, settings)
 
 if __name__ == "__main__":
