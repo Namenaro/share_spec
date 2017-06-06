@@ -33,11 +33,11 @@ dummy_settings = ExperimentSettings(iters_init=100,
                                     enought_episodes_in_module=2,
                                     num_episodes_init=2)
 
-normal_settins = ExperimentSettings(iters_init=800,
+normal_settins = ExperimentSettings(iters_init=1000,
                                     iters_consolidation=1000,
-                                    num_modules=4,
+                                    num_modules=8,
                                     enought_episodes_in_module=5,
-                                    num_episodes_init=3)
+                                    num_episodes_init=4)
 
 
 def experiment_1(folder_for_results, settings):
@@ -80,7 +80,30 @@ def experiment_1(folder_for_results, settings):
                                                     x2=x2,
                                                     arr_unsertainties=arr_unsertainties,
                                                     directory=directory)
-
+            visualisation.visualise_ensemble_probability(realX=realX,
+                                                    realY=realY,
+                                                    x1=x1,
+                                                    x2=x2,
+                                                    arr_unsertainties=arr_unsertainties,
+                                                    arr_probabilities=arr_propbabilities,
+                                                    unsertainty_threshold=0.6,
+                                                    directory=directory)
+# for data, color, group in zip(data, colors, groups):
+def experiment_2():
+    iters_init = range(100, 4000, 1000)
+    num_episodes_init = range(2, 20, 7)
+    iters_consolidation = range( 1000, 10000, 3000)
+    num_modules = range(2, 20, 3)
+    enought_episodes_in_module = range(3, 15, 4)
+    for ii,nei,ic,nm,eeim in zip(iters_init, num_episodes_init, iters_consolidation, num_modules, enought_episodes_in_module):
+        settings = ExperimentSettings(iters_init=ii,
+                                      iters_consolidation=ic,
+                                      num_modules=nm,
+                                      enought_episodes_in_module=eeim,
+                                      num_episodes_init=nei)
+        folder = str(ii)+"_"+str(nei)+"_",str(ic)+"_",str(nm)+"_",str(eeim)
+        experiment_1(folder, settings)
 
 if __name__ == "__main__":
-    experiment_1('results_bias01', normal_settins)
+    #experiment_1('ens_dummy', dummy_settings)
+    experiment_2()

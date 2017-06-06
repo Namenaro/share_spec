@@ -4,7 +4,7 @@ floatX = theano.config.floatX
 import pymc3 as pm
 import theano.tensor as T
 import numpy as np
-from sklearn.datasets.samples_generator import make_blobs
+from sklearn.datasets.samples_generator import make_blobs, make_moons
 import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set_style('white')
@@ -167,10 +167,12 @@ class MicroModule:
 
 
 def test():
+    import os
     # протестируем работоспособность отдельного модуля на линейно разделимой бинарной классификации
     centers = [[1, 1], [-1, -1]]
-    X, Y = make_blobs(n_samples=10, centers=centers, n_features=2, cluster_std=0.5,
-                      random_state=0)
+    # X, Y = make_blobs(n_samples=10, centers=centers, n_features=2, cluster_std=0.5,
+    #                   random_state=0)
+    X, Y = make_moons(noise=0.2, random_state=0, n_samples=15)
     plt.figure(1)
     plt.scatter(X[Y == 0, 0], X[Y == 0, 1], label='Class 0')
     plt.scatter(X[Y == 1, 0], X[Y == 1, 1], color='r', label='Class 1')
@@ -180,11 +182,23 @@ def test():
     plt.title('Real data')
     plt.show()
     # создадим модуль и обучим его
-    module = MicroModule(module_id=666)
+    module = MicroModule(module_id=666, enought_episodes_num=4)
     module.set_episodic_memory(X, Y)
-    module.learn()
+    module.learn(n_iters_advi=3000)
     # визуализиуем его ответы
-    module.visualise_model(X, Y)
+    x1, x2, unsertainties, probabilities = module.get_unserts_and_probs_on_grid(grid_side=100)
+    visualisation = Visualizer()
+    directory = 'unit_test_micro_module3000i'
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    visualisation.visualise_model(realX=X,
+                                  realY=Y,
+                                  x1=x1,
+                                  x2=x2,
+                                  unsertainties=unsertainties,
+                                  probabilities=probabilities,
+                                  module_id=module.module_id,
+                                  directory=directory)
 
 
 if __name__ == "__main__":

@@ -56,41 +56,59 @@ class Visualizer:
         else:
             plt.show()
 
-    def visualise_specialisations(self, realX, realY, x1, x2, arr_probabilities, arr_unsertainties, unsertainty_threshold, directory):
+    def visualise_ensemble_probability(self, realX, realY, x1, x2, arr_probabilities, arr_unsertainties, unsertainty_threshold, directory):
         num_modules = len(arr_probabilities)
         assert len(arr_probabilities) == len(arr_unsertainties)
         assert x1.shape == x2.shape
-        fig, (ax_unsert, ax_prob) = plt.subplots(1, 2, sharex=True)
-        result_prob = np.zeros(x1.shape)
-        # для всех модулей запишем те их ответы, в которых они уверены
-        for n in range(num_modules):
-            for (i, j), value in np.ndenumerate(x1):
-                answer_of_module = arr_probabilities[n][i, j]
+        fig, (ax_prob, ax_mods, ax_unsert) = plt.subplots(1, 3, sharex=True, sharey=True)
+        result_prob = np.full(x1.shape, 0.5)
+        specalized_Xs = []
+        specalized_ids = []
+        unspecialized_Xs = []
+        unserts = np.full(x1.shape, 1.0)
+        # для каждого пиксела входного пространства посмотрим, у какого модуля наибольшая уверенность
+        # в этом месте, и для из этого модуля возьмем значение вероятности
+        for (i, j), value in np.ndenumerate(x1):
+            best_unsertainty = 1.0
+            module_winner = -1
+            for n in range(num_modules):
                 unsertainty_of_module = arr_unsertainties[n][i, j]
-                if unsertainty_of_module < unsertainty_threshold:
-                    if result_prob[i, j] < answer_of_module:
-                        result_prob[i, j] = answer_of_module
+                if unsertainty_of_module < best_unsertainty:
+                    best_unsertainty = unsertainty_of_module
+                    module_winner = n
+            unserts[i, j] = best_unsertainty
+            no_winner = True
+            if module_winner > 0:
+                if arr_unsertainties[module_winner][i, j] < unsertainty_threshold:
+                    no_winner = False
+                    result_prob[i, j] = arr_probabilities[module_winner][i, j]
+                    specalized_Xs.append((x1[i, j], x2[i, j]))
+                    specalized_ids.append(module_winner)
+            if no_winner is True:
+                unspecialized_Xs.append((x1[i, j], x2[i, j]))
         #отрисовка ответа ансамбля
         cmap = sns.diverging_palette(250, 12, s=85, l=25, as_cmap=True)
         contour = ax_prob.contourf(x1, x2, result_prob, cmap=cmap)
         cbar = plt.colorbar(contour, ax=ax_prob)
         cbar.ax.set_ylabel('answers of ensemble')
-        #отрисовка уверенности ансамбля
-        result_unsert = np.zeros(x1.shape)
-        for n in range(num_modules):
-            for (i, j), value in np.ndenumerate(x1):
-                unsertainty_of_module = arr_unsertainties[n][i, j]
-                if result_unsert[i, j] > unsertainty_of_module:
-                    result_unsert[i, j] = unsertainty_of_module
+        # заштрихуем неуверенные точки
+        unspecialized_Xs = np.array(unspecialized_Xs)
+        ax_prob.scatter(unspecialized_Xs[:,0], unspecialized_Xs[:, 1], color='g')
+        #покажем специализации модулей
+        contour = ax_mods.contourf(x1, x2, result_prob, cmap=cmap)
+        specalized_Xs = np.array(specalized_Xs)
+        ax_mods.scatter(specalized_Xs[:, 0], specalized_Xs[:, 1], c=specalized_ids)
+        # покажем карту уверенности ансамбля
         cmap = sns.cubehelix_palette(light=1, as_cmap=True)
-        contour = ax_unsert.contourf(x1, x2, result_unsert, cmap=cmap)
+        contour = ax_unsert.contourf(x1, x2, unserts, cmap=cmap)
         cbar = plt.colorbar(contour, ax=ax_unsert)
         cbar.ax.set_ylabel('Uncertainty of ensemble')
         # для сравнения покажем реальный датасет
         self._scatter_real_dataset(realX=realX, realY=realY, ax=ax_prob)
         self._scatter_real_dataset(realX=realX, realY=realY, ax=ax_unsert)
+        self._scatter_real_dataset(realX=realX, realY=realY, ax=ax_mods)
         if directory is not None:
-            plt.savefig(directory + "/" + "all" + ".png")
+            plt.savefig(directory + "/" + "all_prob" + ".png")
         else:
             plt.show()
 
