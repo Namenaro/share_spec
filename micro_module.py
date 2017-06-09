@@ -34,15 +34,17 @@ class ModuleParams:
     """
     Параметры, для которых строятся апостериорные распределения
     """
-    def __init__(self, n_input, n_hidden=5):
-        self.W01_means = np.random.randn(n_input, n_hidden)
-        self.W01_sds = np.random.random_sample((n_input, n_hidden))
+    def __init__(self, n_input, n_hidden):
+        m=0.9
+        s=6.4
+        self.W01_means = np.random.random_sample((n_input, n_hidden))
+        self.W01_sds = s * np.random.random_sample((n_input, n_hidden))
 
-        self.W12_means = np.random.randn(n_hidden)
-        self.W12_sds = np.random.random_sample((n_hidden))
+        self.W12_means = np.random.random_sample((n_hidden))
+        self.W12_sds = s * np.random.random_sample((n_hidden))
 
-        self.b01_means = np.random.randn(n_hidden)
-        self.b01_sds = np.random.random_sample(( n_hidden))
+        self.b01_means = np.random.random_sample((n_hidden))
+        self.b01_sds = s * np.random.random_sample((n_hidden))
 
 
     def reset(self, v_params):
@@ -118,7 +120,7 @@ class MicroModule:
 
             # связываем эти параметры-распределения в нейросеть
             print "ann_input " + str(type(ann_input))
-            act_1 = T.tanh(T.dot(ann_input, W01) + b01)  # активация скрытого слоя
+            act_1 = T.nnet.softmax(T.dot(ann_input, W01) + b01)  # активация скрытого слоя
             act_out = T.nnet.sigmoid(T.dot(act_1, W12)) # активация выходного нейрона
 
             # Binary classification -> Bernoulli likelihood

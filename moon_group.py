@@ -33,11 +33,11 @@ dummy_settings = ExperimentSettings(iters_init=100,
                                     enought_episodes_in_module=2,
                                     num_episodes_init=2)
 
-normal_settins = ExperimentSettings(iters_init=1000,
-                                    iters_consolidation=1000,
-                                    num_modules=8,
-                                    enought_episodes_in_module=5,
-                                    num_episodes_init=4)
+normal_settings = ExperimentSettings(iters_init=1000,
+                                    iters_consolidation=2000,
+                                    num_modules=5,
+                                    enought_episodes_in_module=2,
+                                    num_episodes_init=2)
 
 
 def experiment_1(folder_for_results, settings):
@@ -49,7 +49,7 @@ def experiment_1(folder_for_results, settings):
     my_dispatcher.simple_initialisation(advi_iterations=settings.iters_init,
                                         n_samples=settings.num_episodes_init)
 
-    for i in range(300):
+    for i in range(200):
         print "iteration: " + str(i)
         my_dispatcher.feed_next_data_point_to_modules()
         my_dispatcher.try_consolidation(advi_iterations=settings.iters_consolidation)
@@ -101,9 +101,9 @@ def experiment_2():
                                       num_modules=nm,
                                       enought_episodes_in_module=eeim,
                                       num_episodes_init=nei)
-        folder = str(ii)+ "_" + str(nei) + "_" + str(ic) + "_" + str(nm) + "_" + str(eeim)
+        folder = "e" + str(ii)+ "_" + str(nei) + "_" + str(ic) + "_" + str(nm) + "_" + str(eeim)
         experiment_1(folder, settings)
 
 if __name__ == "__main__":
-    #experiment_1('ens_dummy', dummy_settings)
-    experiment_2()
+    experiment_1('ens_3softmax', normal_settings)
+    #experiment_2()
