@@ -15,7 +15,7 @@ sns.set_context('talk')
 import model_visualiser
 import dispatcher
 
-main_directory = 'ISOLATED'
+main_folder = 'ISOLATED'
 filenameX = 'bufferX.txt'
 filenameY = 'bufferY.txt'
 visualisation = model_visualiser.Visualizer()
@@ -62,6 +62,13 @@ def make_next_step():
 
 
 if __name__ == "__main__":
+    if not os.path.exists(main_folder):
+        os.makedirs(main_folder)
+    else:
+        files = glob.glob('/' + main_folder + '/*')
+        for f in files:
+            os.remove(f)
+    os.chdir(main_folder)
     create_initial_file()
     X, Y = readXY_from_file()
     while True:
