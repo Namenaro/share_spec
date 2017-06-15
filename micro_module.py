@@ -36,7 +36,7 @@ class ModuleParams:
     """
     def __init__(self, n_input, n_hidden):
         m=0.9
-        s=6.4
+        s=0.2
         self.W01_means = np.random.random_sample((n_input, n_hidden))
         self.W01_sds = s * np.random.random_sample((n_input, n_hidden))
 
@@ -120,7 +120,7 @@ class MicroModule:
 
             # связываем эти параметры-распределения в нейросеть
             print "ann_input " + str(type(ann_input))
-            act_1 = T.nnet.softmax(T.dot(ann_input, W01) + b01)  # активация скрытого слоя
+            act_1 = T.nnet.sigmoid(T.dot(ann_input, W01) + b01)  # активация скрытого слоя
             act_out = T.nnet.sigmoid(T.dot(act_1, W12)) # активация выходного нейрона
 
             # Binary classification -> Bernoulli likelihood

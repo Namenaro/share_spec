@@ -33,9 +33,9 @@ dummy_settings = ExperimentSettings(iters_init=100,
                                     enought_episodes_in_module=2,
                                     num_episodes_init=2)
 
-normal_settings = ExperimentSettings(iters_init=1000,
+normal_settings = ExperimentSettings(iters_init=100,
                                     iters_consolidation=2000,
-                                    num_modules=5,
+                                    num_modules=3,
                                     enought_episodes_in_module=2,
                                     num_episodes_init=2)
 
@@ -105,5 +105,5 @@ def experiment_2():
         experiment_1(folder, settings)
 
 if __name__ == "__main__":
-    experiment_1('ens_3softmax', normal_settings)
+    experiment_1('ens_3hardsigmoid', normal_settings)
     #experiment_2()

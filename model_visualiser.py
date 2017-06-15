@@ -97,6 +97,8 @@ class Visualizer:
         #покажем специализации модулей
         contour = ax_mods.contourf(x1, x2, result_prob, cmap=cmap)
         specalized_Xs = np.array(specalized_Xs)
+        print "specalized_Xs"
+        print specalized_Xs
         ax_mods.scatter(specalized_Xs[:, 0], specalized_Xs[:, 1], c=specalized_ids)
         # покажем карту уверенности ансамбля
         cmap = sns.cubehelix_palette(light=1, as_cmap=True)
