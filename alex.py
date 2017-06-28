@@ -57,8 +57,6 @@ class Magia:
         X, Y = gen.make_data(num_samples=num_samples)
         X = np.array(X).astype(floatX)
         Y = np.array(Y).astype(floatX)
-        print X.shape
-        print str(X)
         return X, Y
 
     def get_train_data(self, num_samples):
@@ -80,14 +78,6 @@ class Magia:
                                    allow_input_downcast=True)  # float64 ->float32
         return train_fn
 
-    def make_train(self, inputs, targets):
-        print "compile model..."
-        train_fn = self.define_train_fn()
-        print "execute..."
-        err = train_fn(inputs, targets)
-        print "error: " + str(err)
-
-
     def define_test_fn(self):
         test_prediction = get_output(self.model, deterministic=True)
         test_loss = squared_error(test_prediction,self.target_var)
@@ -97,22 +87,21 @@ class Magia:
         val_fn = theano.function([self.input_var, self.target_var], [test_loss, test_acc])
         return val_fn
 
-    def make_test(self, inputs, targets):
-        val_fn = self.define_test_fn()
-        err, acc = val_fn(inputs, targets)
-        print "test: acc " + str(acc)
-
     def main_cycle(self):
-        for i in range(20):
+        train_fn = self.define_train_fn()
+        val_fn = self.define_test_fn()
+        for i in range(300):
             data, targets = self.get_train_data(num_samples=5)
             data = np.matrix(data).T
             targets = np.array(targets)
-            self.make_train(inputs=data, targets=targets)
+            train_fn(data, targets)
 
             data, targets = self.get_test_data(num_samples=5)
             data = np.matrix(data).T
             targets = np.array(targets)
-            self.make_test(inputs=data, targets=targets)
+            err, acc = val_fn(data, targets)
+            print "Test:" + ", err=" + str(err)
+
 
 class DataGen:
     def __init__(self):
