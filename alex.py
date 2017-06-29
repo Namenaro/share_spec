@@ -22,23 +22,28 @@ class Magia:
     def __init__(self):
         self.input_var = theano.tensor.matrix('input_var')
         self.target_var = theano.tensor.vector('target_var')
-        self.model = self.symbolic_model()
+        self.model = self.symbolic_model_2hl()
 
-    def symbolic_model(self):
+    def symbolic_model_2hl(self):
         input_layer = InputLayer(shape=(None,1),
                                  name='input_layer',
                                  input_var=self.input_var)
 
-        num_hidden_neurons = 10
+        num_hidden_neurons2 = 5
         second_layer = DenseLayer(incoming=input_layer,
-                                  num_units=num_hidden_neurons,
+                                  num_units=num_hidden_neurons2,
+                                  nonlinearity=lasagne.nonlinearities.rectify,
+                                  name='second_layer')
+        num_hidden_neurons3 = 5
+        third_layer = DenseLayer(incoming=second_layer,
+                                  num_units=num_hidden_neurons3,
                                   nonlinearity=lasagne.nonlinearities.rectify,
                                   name='second_layer')
 
         num_classes = 1
-        output_layer = DenseLayer(incoming=second_layer,
+        output_layer = DenseLayer(incoming=third_layer,
                                 num_units=num_classes,
-                                nonlinearity=theano.tensor.nnet.sigmoid,
+                                nonlinearity=theano.tensor.tanh,
                                 name='output_layer')
 
         return output_layer
@@ -91,7 +96,7 @@ class Magia:
     def main_cycle(self):
         train_fn = self.define_train_fn()
         val_fn = self.define_test_fn()
-        for i in range(300):
+        for i in range(3300):
             data, targets = self.get_train_data(num_samples=5)
             data = np.matrix(data).T
             targets = np.array(targets)
@@ -103,8 +108,8 @@ class Magia:
             err, acc = val_fn(data, targets)
             print "Test:" + ", err=" + str(err)
 
-    def make_prediction(self, ):
-        X = np.linspace(-5, 5, 10)
+    def make_prediction(self):
+        X = np.linspace(-5, 5, 100)
         X = np.array(X).astype(floatX)
         X = np.matrix(X).T
         x = theano.tensor.matrix('x', dtype=theano.config.floatX)
@@ -119,6 +124,8 @@ class Magia:
         output = output.flatten()
 
         plt.scatter(X, output, c='k', label='data', zorder=1)
+        data, targets = self.get_train_data(num_samples=215)
+        plt.scatter(data, targets, color='red', label='real', zorder=1)
         plt.show()
 
 
