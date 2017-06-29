@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*
 import theano
-import theano.tensor as T
+import theano.tensor
 import lasagne
 floatX = theano.config.floatX
 
@@ -11,7 +11,7 @@ from lasagne.regularization import regularize_layer_params_weighted, l2, l1
 import matplotlib.pyplot as plt
 import itertools
 
-import theano.tensor as T
+
 from sklearn.datasets.samples_generator import make_blobs, make_moons
 from sklearn.preprocessing import scale
 import numpy as np
@@ -20,8 +20,8 @@ rng = np.random.RandomState(0)
 
 class Magia:
     def __init__(self):
-        self.input_var = T.matrix('input_var')
-        self.target_var = T.vector('target_var')
+        self.input_var = theano.tensor.matrix('input_var')
+        self.target_var = theano.tensor.vector('target_var')
         self.model = self.symbolic_model()
 
     def symbolic_model(self):
@@ -29,7 +29,7 @@ class Magia:
                                  name='input_layer',
                                  input_var=self.input_var)
 
-        num_hidden_neurons = 6
+        num_hidden_neurons = 10
         second_layer = DenseLayer(incoming=input_layer,
                                   num_units=num_hidden_neurons,
                                   nonlinearity=lasagne.nonlinearities.rectify,
@@ -38,8 +38,9 @@ class Magia:
         num_classes = 1
         output_layer = DenseLayer(incoming=second_layer,
                                 num_units=num_classes,
-                                nonlinearity=T.nnet.sigmoid,
+                                nonlinearity=theano.tensor.nnet.sigmoid,
                                 name='output_layer')
+
         return output_layer
 
     def get_test_data(self, num_samples):
@@ -82,7 +83,7 @@ class Magia:
         test_prediction = get_output(self.model, deterministic=True)
         test_loss = squared_error(test_prediction,self.target_var)
         test_loss = test_loss.mean()
-        test_acc = T.mean(T.eq(T.argmax(test_prediction, axis=1), self.target_var),
+        test_acc = theano.tensor.mean(theano.tensor.eq(theano.tensor.argmax(test_prediction, axis=1), self.target_var),
                           dtype=theano.config.floatX)
         val_fn = theano.function([self.input_var, self.target_var], [test_loss, test_acc])
         return val_fn
@@ -101,6 +102,25 @@ class Magia:
             targets = np.array(targets)
             err, acc = val_fn(data, targets)
             print "Test:" + ", err=" + str(err)
+
+    def make_prediction(self, ):
+        X = np.linspace(-5, 5, 10)
+        X = np.array(X).astype(floatX)
+        X = np.matrix(X).T
+        x = theano.tensor.matrix('x', dtype=theano.config.floatX)
+        prediction = lasagne.layers.get_output(self.model, x)
+        f = theano.function([x], prediction)
+        output = f(X)
+
+        print "make_pred:"
+        print(output)
+        plt.figure()
+        X = np.asarray(X).reshape(-1)
+        output = output.flatten()
+
+        plt.scatter(X, output, c='k', label='data', zorder=1)
+        plt.show()
+
 
 
 class DataGen:
@@ -145,6 +165,7 @@ class DataGen:
 if __name__ == "__main__":
     magia = Magia()
     magia.main_cycle()
+    magia.make_prediction()
 
 
 
