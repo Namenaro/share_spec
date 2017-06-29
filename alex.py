@@ -10,6 +10,7 @@ from lasagne.objectives import categorical_crossentropy, squared_error
 from lasagne.regularization import regularize_layer_params_weighted, l2, l1
 import matplotlib.pyplot as plt
 import itertools
+import lasagne.layers
 
 
 from sklearn.datasets.samples_generator import make_blobs, make_moons
@@ -22,7 +23,26 @@ class Magia:
     def __init__(self):
         self.input_var = theano.tensor.matrix('input_var')
         self.target_var = theano.tensor.vector('target_var')
-        self.model = self.symbolic_model_2hl()
+        self.model = self.symbolic_model()
+
+    def symbolic_model(self):
+        input_layer = InputLayer(shape=(None, 1),
+                                 name='input_layer',
+                                 input_var=self.input_var)
+
+        num_hidden_neurons2 = 15
+        second_layer = DenseLayer(incoming=input_layer,
+                                  num_units=num_hidden_neurons2,
+                                  nonlinearity=lasagne.nonlinearities.rectify,
+                                  name='second_layer')
+
+        num_classes = 1
+        output_layer = DenseLayer(incoming=second_layer,
+                                  num_units=num_classes,
+                                  nonlinearity=theano.tensor.tanh,
+                                  name='output_layer')
+
+        return output_layer
 
     def symbolic_model_2hl(self):
         input_layer = InputLayer(shape=(None,1),
