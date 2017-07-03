@@ -23,7 +23,33 @@ class Magia:
     def __init__(self):
         self.input_var = theano.tensor.matrix('input_var')
         self.target_var = theano.tensor.vector('target_var')
-        self.model = self.symbolic_model()
+        self.model = self.symbolic_droput_model()
+
+    def symbolic_droput_model(self):
+        input_layer = InputLayer(shape=(None, 1),
+                                 name='input_layer',
+                                 input_var=self.input_var)
+
+        d2 = DenseLayer(incoming=input_layer,
+                                  num_units=5,
+                                  nonlinearity=lasagne.nonlinearities.rectify,
+                                  name='second_layer')
+
+        dr2 = lasagne.layers.DropoutLayer(d2, p=0.9)
+
+        d3 = DenseLayer(incoming=dr2,
+                        num_units=5,
+                        nonlinearity=lasagne.nonlinearities.rectify,
+                        name='second_layer')
+
+        dr3 = lasagne.layers.DropoutLayer(d3, p=0.9)
+
+        output_layer = DenseLayer(incoming=dr3,
+                                  num_units=1,
+                                  nonlinearity=theano.tensor.tanh,
+                                  name='output_layer')
+
+        return output_layer
 
     def symbolic_model(self):
         input_layer = InputLayer(shape=(None, 1),
@@ -116,7 +142,7 @@ class Magia:
     def main_cycle(self):
         train_fn = self.define_train_fn()
         val_fn = self.define_test_fn()
-        for i in range(3300):
+        for i in range(100):
             data, targets = self.get_train_data(num_samples=5)
             data = np.matrix(data).T
             targets = np.array(targets)
@@ -148,6 +174,23 @@ class Magia:
         plt.scatter(data, targets, color='red', label='real', zorder=1)
         plt.show()
 
+    def make_pred_in_one_point(self, X):
+        # получает точку входного пространства
+        # возвращает ответ сети в этой точке
+        X = np.array(X).astype(floatX)
+        X = np.matrix(X).T
+        x = theano.tensor.matrix('x', dtype=theano.config.floatX)
+        prediction = lasagne.layers.get_output(self.model, x, deterministic=False)
+        f = theano.function([x], prediction)
+        output = f(X)
+        return output
+
+    def make_distribution_in_point(self, x, n_samples):
+        samples = []
+        for _ in range(n_samples):
+            ans = self.make_pred_in_one_point(x)
+            samples.append(ans)
+        return samples
 
 
 class DataGen:
@@ -193,6 +236,8 @@ if __name__ == "__main__":
     magia = Magia()
     magia.main_cycle()
     magia.make_prediction()
+    dis_x = magia.make_distribution_in_point(x=2., n_samples=30)
+    print str(dis_x)
 
 
 
