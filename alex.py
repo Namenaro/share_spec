@@ -24,6 +24,7 @@ class Magia:
         self.input_var = theano.tensor.matrix('input_var')
         self.target_var = theano.tensor.vector('target_var')
         self.model = self.symbolic_droput_model()
+        self.weight_decay = 0.01
 
     def symbolic_droput_model(self):
         input_layer = InputLayer(shape=(None, 1),
@@ -35,14 +36,14 @@ class Magia:
                                   nonlinearity=lasagne.nonlinearities.rectify,
                                   name='second_layer')
 
-        dr2 = lasagne.layers.DropoutLayer(d2, p=0.9)
+        dr2 = lasagne.layers.DropoutLayer(d2, p=0.5)
 
         d3 = DenseLayer(incoming=dr2,
-                        num_units=5,
+                        num_units=15,
                         nonlinearity=lasagne.nonlinearities.rectify,
                         name='second_layer')
 
-        dr3 = lasagne.layers.DropoutLayer(d3, p=0.9)
+        dr3 = lasagne.layers.DropoutLayer(d3, p=0.5)
 
         output_layer = DenseLayer(incoming=dr3,
                                   num_units=1,
@@ -119,6 +120,8 @@ class Magia:
         predictions = get_output(self.model)
         loss = squared_error(predictions, self.target_var)  # возвращает 1d тензор
         loss = loss.mean()  # а вот теперь скаляр
+        weights_L2 = lasagne.regularization.regularize_network_params(self.model, lasagne.regularization.l2)
+        loss += self.weight_decay * weights_L2
 
         # какие параметры оптимизируем и как
         params = lasagne.layers.get_all_params(self.model, trainable=True)
@@ -142,7 +145,7 @@ class Magia:
     def main_cycle(self):
         train_fn = self.define_train_fn()
         val_fn = self.define_test_fn()
-        for i in range(100):
+        for i in range(3100):
             data, targets = self.get_train_data(num_samples=5)
             data = np.matrix(data).T
             targets = np.array(targets)
@@ -190,8 +193,29 @@ class Magia:
         for _ in range(n_samples):
             ans = self.make_pred_in_one_point(x)
             samples.append(ans)
+        plt.figure()
+        a = np.empty(n_samples)
+        a.fill(x)
+        plt.scatter(a, samples, color='red', label='real', zorder=1)
+        plt.show()
         return samples
 
+    def make_full_pred(self, n_samples_per_point, from_x, to_x, n_points):
+        plt.figure()
+        x = from_x
+        dx = (to_x - from_x) /float(n_points)
+        print "dx=" + str (dx)
+        for i in range(n_points):
+            print "next point.."
+            samples = []
+            for _ in range(n_samples_per_point):
+                ans = self.make_pred_in_one_point(x)
+                samples.append(ans)
+            a = np.empty(n_samples_per_point)
+            a.fill(x)
+            plt.scatter(a, samples, color='red', label='real', zorder=1)
+            x += dx
+        plt.show()
 
 class DataGen:
     def __init__(self):
@@ -236,8 +260,12 @@ if __name__ == "__main__":
     magia = Magia()
     magia.main_cycle()
     magia.make_prediction()
-    dis_x = magia.make_distribution_in_point(x=2., n_samples=30)
-    print str(dis_x)
+    #dis_x = magia.make_distribution_in_point(x=2., n_samples=30)
+    magia.make_full_pred(n_samples_per_point=10,
+                         from_x=-6,
+                         to_x=6,
+                         n_points=20)
+
 
 
 
