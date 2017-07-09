@@ -16,6 +16,7 @@ import lasagne.layers
 from sklearn.datasets.samples_generator import make_blobs, make_moons
 from sklearn.preprocessing import scale
 import numpy as np
+import alex_data
 
 rng = np.random.RandomState(0)
 
@@ -24,7 +25,7 @@ class Magia:
         self.input_var = theano.tensor.matrix('input_var')
         self.target_var = theano.tensor.vector('target_var')
         self.model = self.symbolic_droput_model()
-        self.weight_decay = 0.01
+        self.weight_decay = 0.0001
 
     def symbolic_droput_model(self):
         input_layer = InputLayer(shape=(None, 1),
@@ -32,18 +33,18 @@ class Magia:
                                  input_var=self.input_var)
 
         d2 = DenseLayer(incoming=input_layer,
-                                  num_units=5,
+                                  num_units=6,
                                   nonlinearity=lasagne.nonlinearities.rectify,
                                   name='second_layer')
 
-        dr2 = lasagne.layers.DropoutLayer(d2, p=0.5)
+        dr2 = lasagne.layers.DropoutLayer(d2, p=0.3)
 
         d3 = DenseLayer(incoming=dr2,
-                        num_units=15,
+                        num_units=6,
                         nonlinearity=lasagne.nonlinearities.rectify,
                         name='second_layer')
 
-        dr3 = lasagne.layers.DropoutLayer(d3, p=0.5)
+        dr3 = lasagne.layers.DropoutLayer(d3, p=0.1)
 
         output_layer = DenseLayer(incoming=dr3,
                                   num_units=1,
@@ -126,7 +127,7 @@ class Magia:
         # какие параметры оптимизируем и как
         params = lasagne.layers.get_all_params(self.model, trainable=True)
         updates = lasagne.updates.nesterov_momentum(
-            loss, params, learning_rate=0.01, momentum=0.9)
+            loss, params, learning_rate=0.02, momentum=0.9)
         train_fn = theano.function(inputs=[self.input_var, self.target_var],
                                    outputs=loss,
                                    updates=updates,
