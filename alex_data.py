@@ -32,15 +32,21 @@ class AlexData:
             X.append(x)
         return X
 
-    def make_XY(self, num_samples):
-        n1 = int(num_samples/2)
+    def XY(self, num_samples):
+        n1 = int(num_samples / 2)
         n2 = num_samples - n1
         X1 = self._make_X(mu=0.0, sigma=0.3, n=n1)
         X2 = self._make_X(mu=2.5, sigma=0.6, n=n2)
         Y1 = self._make_Y(X1, noise=0.6)
         Y2 = self._make_Y(X2, noise=0.00)
-        self.X = X1 + X2
-        self.Y = Y1 + Y2
+        X = X1 + X2
+        Y = Y1 + Y2
+        return X, Y
+
+    def make_XY(self, num_samples):
+        X, Y = self.XY(num_samples)
+        self.X = X
+        self.Y = Y
 
     def show_XY(self, X=None, Y=None):
         if X is None:
@@ -63,15 +69,16 @@ class AlexData:
             batchY.append(self.Y[index])
         return batchX, batchY
 
+    def get_test_data(self, size):
+        X, Y = self.XY(size)
+        return X, Y
+
 if __name__ == "__main__":
      data = AlexData()
      data.show_XY()
      X,Y = data.get_batch(10)
      data.show_XY(X=X, Y=Y)
-     X, Y = data.get_batch(10)
-     data.show_XY(X=X, Y=Y)
-     X, Y = data.get_batch(10)
-     data.show_XY(X=X, Y=Y)
+
 
 
 

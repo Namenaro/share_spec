@@ -21,11 +21,19 @@ import alex_data
 rng = np.random.RandomState(0)
 
 class Magia:
-    def __init__(self):
+    def __init__(self, data_generator):
+        self.params = {}
+        self.params['weight_decay'] = 0.0001
+        self.params['learning_rate'] = 0.02
+        self.params['num_iterations'] = 3000
+        self.params['batch_size'] = 5
+        self.params['dropout'] = 0.3
+        self.params['num_neurons'] = 6
+        self.gen = data_generator
         self.input_var = theano.tensor.matrix('input_var')
         self.target_var = theano.tensor.vector('target_var')
         self.model = self.symbolic_droput_model()
-        self.weight_decay = 0.0001
+
 
     def symbolic_droput_model(self):
         input_layer = InputLayer(shape=(None, 1),
@@ -33,18 +41,18 @@ class Magia:
                                  input_var=self.input_var)
 
         d2 = DenseLayer(incoming=input_layer,
-                                  num_units=6,
+                                  num_units=self.params['num_neurons'],
                                   nonlinearity=lasagne.nonlinearities.rectify,
                                   name='second_layer')
 
-        dr2 = lasagne.layers.DropoutLayer(d2, p=0.3)
+        dr2 = lasagne.layers.DropoutLayer(d2, p=self.params['dropout'])
 
         d3 = DenseLayer(incoming=dr2,
-                        num_units=6,
+                        num_units=self.params['num_neurons'],
                         nonlinearity=lasagne.nonlinearities.rectify,
                         name='second_layer')
 
-        dr3 = lasagne.layers.DropoutLayer(d3, p=0.1)
+        dr3 = lasagne.layers.DropoutLayer(d3, p=self.params['dropout'])
 
         output_layer = DenseLayer(incoming=dr3,
                                   num_units=1,
@@ -53,68 +61,17 @@ class Magia:
 
         return output_layer
 
-    def symbolic_model(self):
-        input_layer = InputLayer(shape=(None, 1),
-                                 name='input_layer',
-                                 input_var=self.input_var)
-
-        num_hidden_neurons2 = 15
-        second_layer = DenseLayer(incoming=input_layer,
-                                  num_units=num_hidden_neurons2,
-                                  nonlinearity=lasagne.nonlinearities.rectify,
-                                  name='second_layer')
-
-        num_classes = 1
-        output_layer = DenseLayer(incoming=second_layer,
-                                  num_units=num_classes,
-                                  nonlinearity=theano.tensor.tanh,
-                                  name='output_layer')
-
-        return output_layer
-
-    def symbolic_model_2hl(self):
-        input_layer = InputLayer(shape=(None,1),
-                                 name='input_layer',
-                                 input_var=self.input_var)
-
-        num_hidden_neurons2 = 5
-        second_layer = DenseLayer(incoming=input_layer,
-                                  num_units=num_hidden_neurons2,
-                                  nonlinearity=lasagne.nonlinearities.rectify,
-                                  name='second_layer')
-        num_hidden_neurons3 = 5
-        third_layer = DenseLayer(incoming=second_layer,
-                                  num_units=num_hidden_neurons3,
-                                  nonlinearity=lasagne.nonlinearities.rectify,
-                                  name='second_layer')
-
-        num_classes = 1
-        output_layer = DenseLayer(incoming=third_layer,
-                                num_units=num_classes,
-                                nonlinearity=theano.tensor.tanh,
-                                name='output_layer')
-
-        return output_layer
-
-    def get_test_data(self, num_samples):
-        X, Y = self.regression_data(num_samples=num_samples)
-        return X, Y
-
-    def classification_data(self, num_samples):
-        X, Y = make_moons(noise=0.2, random_state=0, n_samples=num_samples)
-        X = X.astype(floatX)
-        Y = Y.astype(floatX)
-        return X, Y
-
-    def regression_data(self, num_samples):
-        gen = DataGen()
-        X, Y = gen.make_data(num_samples=num_samples)
+    def get_data(self, num_samples):
+        X, Y = self.gen.get_batch(num_samples)
         X = np.array(X).astype(floatX)
         Y = np.array(Y).astype(floatX)
         return X, Y
 
-    def get_train_data(self, num_samples):
-        return self.get_test_data(num_samples=num_samples)
+    def get_test_data(self, num_samples):
+        X, Y = self.gen.get_test_data(5)
+        X = np.array(X).astype(floatX)
+        Y = np.array(Y).astype(floatX)
+        return X, Y
 
     def define_train_fn(self):
         # символьная оптимизируемая функция
@@ -122,7 +79,7 @@ class Magia:
         loss = squared_error(predictions, self.target_var)  # возвращает 1d тензор
         loss = loss.mean()  # а вот теперь скаляр
         weights_L2 = lasagne.regularization.regularize_network_params(self.model, lasagne.regularization.l2)
-        loss += self.weight_decay * weights_L2
+        loss += self.params['weight_decay'] * weights_L2
 
         # какие параметры оптимизируем и как
         params = lasagne.layers.get_all_params(self.model, trainable=True)
@@ -146,13 +103,13 @@ class Magia:
     def main_cycle(self):
         train_fn = self.define_train_fn()
         val_fn = self.define_test_fn()
-        for i in range(3100):
-            data, targets = self.get_train_data(num_samples=5)
+        for i in range(self.params['num_iterations']):
+            data, targets = self.get_data(num_samples=self.params['batch_size'])
             data = np.matrix(data).T
             targets = np.array(targets)
             train_fn(data, targets)
 
-            data, targets = self.get_test_data(num_samples=5)
+            data, targets = self.get_test_data(5)
             data = np.matrix(data).T
             targets = np.array(targets)
             err, acc = val_fn(data, targets)
@@ -172,11 +129,9 @@ class Magia:
         plt.figure()
         X = np.asarray(X).reshape(-1)
         output = output.flatten()
-
         plt.scatter(X, output, c='k', label='data', zorder=1)
-        data, targets = self.get_train_data(num_samples=215)
-        plt.scatter(data, targets, color='red', label='real', zorder=1)
-        plt.show()
+        plt.scatter(self.gen.X, self.gen.Y, color='red', label='real', zorder=1)
+
 
     def make_pred_in_one_point(self, X):
         # получает точку входного пространства
@@ -218,56 +173,27 @@ class Magia:
             x += dx
         plt.show()
 
-class DataGen:
-    def __init__(self):
-        pass
-
-    def make_Y(self, X, noise):
-        Y = []
-        for x in X:
-            Y.append(self.make_y(x, noise))
-        return Y
-
-    def make_y(self, x, noise):
-        y = np.sin(x) + noise * rng.rand()
-        return y
-
-    def make_X(self, mu, sigma, n):
-        X= []
-        for i in range(n):
-            x = np.random.normal(mu, sigma)
-            X.append(x)
-        return X
-
-    def make_data(self, num_samples):
-        n1 = int(num_samples/2)
-        n2 = num_samples - n1
-        X1 = self.make_X(mu=0.0, sigma=0.3, n=n1)
-        X2 = self.make_X(mu=2.5, sigma=0.6, n=n2)
-        Y1 = self.make_Y(X1, noise=0.6)
-        Y2 = self.make_Y(X2, noise=0.00)
-        X = X1 + X2
-        Y = Y1 + Y2
-        return X, Y
-
-    def show_data(self, X, Y):
-        plt.figure()
-        print str(X)
-        print str(Y)
-        plt.scatter(X, Y, c='k', label='data', zorder=1)
-        plt.show()
+def experiment( gen):
+    for i in range(6,16,2):
+        magia = Magia(gen)
+        magia.params['num_neurons'] = i
+        magia.params['num_iterations'] = i*3000
+        magia.main_cycle()
+        magia.make_prediction()
+        del magia
+        plt.savefig("neurons_"+str(i)+".png")
 
 if __name__ == "__main__":
-    magia = Magia()
-    magia.main_cycle()
-    magia.make_prediction()
+    generator = alex_data.AlexData()
+    #magia = Magia(generator)
+    #magia.main_cycle()
+    #magia.make_prediction()
     #dis_x = magia.make_distribution_in_point(x=2., n_samples=30)
-    magia.make_full_pred(n_samples_per_point=10,
-                         from_x=-6,
-                         to_x=6,
-                         n_points=20)
-
-
+    #magia.make_full_pred(n_samples_per_point=4,
+    #                     from_x=-5,
+    #                     to_x=5,
+    #                     n_points=15)
+    experiment(generator)
 
 
 
