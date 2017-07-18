@@ -18,17 +18,19 @@ from sklearn.preprocessing import scale
 import numpy as np
 import alex_data
 
+np.random.seed(42)
 rng = np.random.RandomState(0)
 
 class Magia:
     def __init__(self, data_generator):
         self.params = {}
-        self.params['weight_decay'] = 0.0001
-        self.params['learning_rate'] = 0.02
-        self.params['num_iterations'] = 3000
+        self.params['weight_decay'] = 0.00001
+        self.params['learning_rate'] = 0.01
+        self.params['num_iterations'] = 8000
         self.params['batch_size'] = 5
-        self.params['dropout'] = 0.3
-        self.params['num_neurons'] = 6
+        self.params['dropout'] = 0.2
+        self.params['num_neurons2'] = 8
+        self.params['num_neurons3'] = 6
         self.gen = data_generator
         self.input_var = theano.tensor.matrix('input_var')
         self.target_var = theano.tensor.vector('target_var')
@@ -41,14 +43,14 @@ class Magia:
                                  input_var=self.input_var)
 
         d2 = DenseLayer(incoming=input_layer,
-                                  num_units=self.params['num_neurons'],
-                                  nonlinearity=lasagne.nonlinearities.rectify,
+                                  num_units=self.params['num_neurons2'],
+                                  nonlinearity=lasagne.nonlinearities.leaky_rectify,
                                   name='second_layer')
 
         dr2 = lasagne.layers.DropoutLayer(d2, p=self.params['dropout'])
 
         d3 = DenseLayer(incoming=dr2,
-                        num_units=self.params['num_neurons'],
+                        num_units=self.params['num_neurons3'],
                         nonlinearity=lasagne.nonlinearities.rectify,
                         name='second_layer')
 
@@ -84,7 +86,9 @@ class Magia:
         # какие параметры оптимизируем и как
         params = lasagne.layers.get_all_params(self.model, trainable=True)
         updates = lasagne.updates.nesterov_momentum(
-            loss, params, learning_rate=0.02, momentum=0.9)
+            loss, params,
+            learning_rate=self.params['learning_rate'],
+            momentum=0.9)
         train_fn = theano.function(inputs=[self.input_var, self.target_var],
                                    outputs=loss,
                                    updates=updates,
@@ -95,9 +99,7 @@ class Magia:
         test_prediction = get_output(self.model, deterministic=True)
         test_loss = squared_error(test_prediction,self.target_var)
         test_loss = test_loss.mean()
-        test_acc = theano.tensor.mean(theano.tensor.eq(theano.tensor.argmax(test_prediction, axis=1), self.target_var),
-                          dtype=theano.config.floatX)
-        val_fn = theano.function([self.input_var, self.target_var], [test_loss, test_acc])
+        val_fn = theano.function([self.input_var, self.target_var], test_loss)
         return val_fn
 
     def main_cycle(self):
@@ -112,8 +114,8 @@ class Magia:
             data, targets = self.get_test_data(5)
             data = np.matrix(data).T
             targets = np.array(targets)
-            err, acc = val_fn(data, targets)
-            print "Test:" + ", err=" + str(err)
+            err = val_fn(data, targets)
+            print "Test:" + "err=" + str(err)
 
     def make_prediction(self):
         X = np.linspace(-5, 5, 100)
@@ -158,6 +160,7 @@ class Magia:
 
     def make_full_pred(self, n_samples_per_point, from_x, to_x, n_points):
         plt.figure()
+        plt.scatter(self.gen.X, self.gen.Y, c='k', label='real', zorder=1)
         x = from_x
         dx = (to_x - from_x) /float(n_points)
         print "dx=" + str (dx)
@@ -170,8 +173,27 @@ class Magia:
             a = np.empty(n_samples_per_point)
             a.fill(x)
             plt.scatter(a, samples, color='red', label='real', zorder=1)
+            self.evaluate_unsertainty(x, samples)
             x += dx
-        plt.show()
+
+
+    def print_params(self):
+        print self.params
+
+    def evaluate_unsertainty(self, x, samples, need_to_draw=True):
+        # считаем мин
+        # считаем дисперсию
+        # рисуем вертикальную линию
+        mean = np.mean(samples)
+        std = np.std(samples)
+        half_std = float(std/2)
+        print mean
+        print std
+        print half_std
+        print x
+        if need_to_draw:
+            plt.plot([x, x], [mean - half_std, mean + half_std], 'k-', lw=2)
+
 
 def experiment( gen):
     for i in range(6,16,2):
@@ -183,6 +205,25 @@ def experiment( gen):
         del magia
         plt.savefig("neurons_"+str(i)+".png")
 
+def experiment1( gen):
+    magia = Magia(gen)
+    magia.main_cycle()
+    magia.make_prediction()
+    magia.print_params()
+    del magia
+    plt.savefig("clear5_" + ".png")
+
+def experiment2( gen):
+    magia = Magia(gen)
+    magia.main_cycle()
+    magia.make_full_pred(n_samples_per_point=12,
+                                            from_x=-5,
+                                            to_x=7,
+                                            n_points=10)
+    magia.print_params()
+    del magia
+    plt.savefig("clear5_" + ".png")
+
 if __name__ == "__main__":
     generator = alex_data.AlexData()
     #magia = Magia(generator)
@@ -193,7 +234,19 @@ if __name__ == "__main__":
     #                     from_x=-5,
     #                     to_x=5,
     #                     n_points=15)
-    experiment(generator)
+    experiment2(generator)
+    arr = [0,1,2,4]
+    mean = np.mean(arr)
+    std = np.std(arr)
+    print mean
+    print std
+    h = float(std / 2)
+    print h
+    plt.figure()
+    plt.plot([5, 5], [mean - h, mean + h], 'k-', lw=2)
+    plt.savefig("clear6_" + ".png")
+
+
 
 
 

@@ -2,8 +2,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-
-rng = np.random.RandomState(0)
+np.random.seed(42)
 
 # Класс отвечающий за датасет для регресии из 1д в 1д.
 # Класс инициализирует датасет
@@ -13,10 +12,10 @@ class AlexData:
     def __init__(self):
         self.X = []
         self.Y = []
-        self.make_XY(20)
+        self.make_XY(40)
 
     def _make_y(self, x, noise):
-        y = np.sin(x) + noise * rng.rand()
+        y = 0.6 * np.sin(x) + noise * np.random.normal()
         return y
 
     def _make_Y(self, X, noise):
@@ -36,7 +35,7 @@ class AlexData:
         n1 = int(num_samples / 2)
         n2 = num_samples - n1
         X1 = self._make_X(mu=0.0, sigma=0.3, n=n1)
-        X2 = self._make_X(mu=2.5, sigma=0.6, n=n2)
+        X2 = self._make_X(mu=1.5, sigma=0.3, n=n2)
         Y1 = self._make_Y(X1, noise=0.6)
         Y2 = self._make_Y(X2, noise=0.00)
         X = X1 + X2
